@@ -1,0 +1,87 @@
+version: '3.7'
+
+services:
+  # Galera Cluster Nodes
+  db-galera1:
+    image: mariadb:10.5
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass
+      MARIADB_CLUSTER_NAME: "galera_cluster"
+      MARIADB_NODE_ADDRESS: "db-galera1"
+      MARIADB_GALERA_CLUSTER_BOOTSTRAP: "true"
+      MARIADB_GALERA_CLUSTER_ADDRESS: "gcomm://db-galera1,db-galera2,db-galera3"
+    networks:
+      - galera_network
+    volumes:
+      - db_data_galera1:/var/lib/mysql
+
+  db-galera2:
+    image: mariadb:10.5
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass
+      MARIADB_CLUSTER_NAME: "galera_cluster"
+      MARIADB_NODE_ADDRESS: "db-galera2"
+      MARIADB_GALERA_CLUSTER_ADDRESS: "gcomm://db-galera1,db-galera2,db-galera3"
+    networks:
+      - galera_network
+    volumes:
+      - db_data_galera2:/var/lib/mysql
+
+  db-galera3:
+    image: mariadb:10.5
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass
+      MARIADB_CLUSTER_NAME: "galera_cluster"
+      MARIADB_NODE_ADDRESS: "db-galera3"
+      MARIADB_GALERA_CLUSTER_ADDRESS: "gcomm://db-galera1,db-galera2,db-galera3"
+    networks:
+      - galera_network
+    volumes:
+      - db_data_galera3:/var/lib/mysql
+
+  # WordPress Instances
+  wordpress1:
+    image: wordpress:latest
+    ports:
+      - "8081:80"
+    environment:
+      WORDPRESS_DB_HOST: db-galera1:3306
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppass
+      WORDPRESS_DB_NAME: wordpress
+    depends_on:
+      - db-galera1
+    networks:
+      - galera_network
+
+  wordpress2:
+    image: wordpress:latest
+    ports:
+      - "8082:80"
+    environment:
+      WORDPRESS_DB_HOST: db-galera2:3306
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppass
+      WORDPRESS_DB_NAME: wordpress
+    depends_on:
+      - db-galera2
+    networks:
+      - galera_network
+
+networks:
+  galera_network:
+    driver: bridge
+
+volumes:
+  db_data_galera1:
+  db_data_galera2:
+  db_data_galera3:

@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  wordpress_c1:
+    image: wordpress:latest
+    container_name: wordpress_c1
+    environment:
+      WORDPRESS_DB_HOST: db_master
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+    ports:
+      - "8081:80"
+    volumes:
+      - wordpress_data_c1:/var/www/html
+    networks:
+      - wordpress_network
+
+  wordpress_c2:
+    image: wordpress:latest
+    container_name: wordpress_c2
+    environment:
+      WORDPRESS_DB_HOST: db_slave
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+    ports:
+      - "8082:80"
+    volumes:
+      - wordpress_data_c2:/var/www/html
+    networks:
+      - wordpress_network
+
+  db_master:
+    image: mysql:latest
+    container_name: mysql_master
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - db_master_data:/var/lib/mysql
+    networks:
+      - wordpress_network
+    command:
+      --log-bin=mysql-bin
+      --server-id=1
+
+  db_slave:
+    image: mysql:latest
+    container_name: mysql_slave
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - db_slave_data:/var/lib/mysql
+    networks:
+      - wordpress_network
+    command:
+      --server-id=2
+
+  loadbalancer:
+    image: nginx:latest
+    container_name: loadbalancer
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - wordpress_network
+
+networks:
+  wordpress_network:
+    driver: bridge
+
+volumes:
+  wordpress_data_c1:
+  wordpress_data_c2:
+  db_master_data:
+  db_slave_data:

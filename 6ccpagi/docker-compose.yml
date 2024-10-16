@@ -1,0 +1,90 @@
+version: '3.7'
+
+services:
+  # MariaDB Master 1
+  mariadb-master1:
+    image: mariadb:10.5
+    container_name: mariadb-master1
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: wordpress_db
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_password
+    volumes:
+      - ./dbdata/master1:/var/lib/mysql
+      - ./mariadb-master1.cnf:/etc/mysql/conf.d/mariadb-master1.cnf
+    networks:
+      - wordpress_network
+    ports:
+      - "3306:3306"
+
+  # MariaDB Master 2
+  mariadb-master2:
+    image: mariadb:10.5
+    container_name: mariadb-master2
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: wordpress_db
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_password
+    volumes:
+      - ./dbdata/master2:/var/lib/mysql
+      - ./mariadb-master2.cnf:/etc/mysql/conf.d/mariadb-master2.cnf
+    networks:
+      - wordpress_network
+    ports:
+      - "3307:3306"
+
+  # WordPress Instance 1
+  wordpress1:
+    image: wordpress:latest
+    container_name: wordpress1
+    environment:
+      WORDPRESS_DB_HOST: mariadb-master1:3306
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_password
+      WORDPRESS_DB_NAME: wordpress_db
+    volumes:
+      - ./wordpress/html1:/var/www/html
+    depends_on:
+      - mariadb-master1
+    networks:
+      - wordpress_network
+    ports:
+      - "8081:80"
+
+  # WordPress Instance 2
+  wordpress2:
+    image: wordpress:latest
+    container_name: wordpress2
+    environment:
+      WORDPRESS_DB_HOST: mariadb-master2:3307
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_password
+      WORDPRESS_DB_NAME: wordpress_db
+    volumes:
+      - ./wordpress/html2:/var/www/html
+    depends_on:
+      - mariadb-master2
+    networks:
+      - wordpress_network
+    ports:
+      - "8082:80"
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - wordpress1
+      - wordpress2
+    networks:
+      - wordpress_network
+
+networks:
+  wordpress_network:
+    driver: bridge
